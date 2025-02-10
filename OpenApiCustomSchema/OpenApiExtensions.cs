@@ -1,15 +1,18 @@
 using Microsoft.AspNetCore.OpenApi;
 
-namespace WebApplication1;
+namespace OpenApiCustomSchema;
 
 public static class OpenApiExtensions
 {
-    public static OpenApiOptions CustomSchemaIds(this OpenApiOptions config, Func<Type, string?> typeSchemaTransformer)
+    public static OpenApiOptions CustomSchemaIds(this OpenApiOptions config, Func<Type, string?> typeSchemaTransformer, bool includeValueTypes = false)
     {
         return config.AddSchemaTransformer((schema, context, _) =>
         {
             // Skip value types and strings
-            if (context.JsonTypeInfo.Type.IsValueType || context.JsonTypeInfo.Type == typeof(String) || context.JsonTypeInfo.Type == typeof(string))
+            if (!includeValueTypes && 
+                (context.JsonTypeInfo.Type.IsValueType || 
+                 context.JsonTypeInfo.Type == typeof(String) || 
+                 context.JsonTypeInfo.Type == typeof(string)))
             {
                 return Task.CompletedTask;
             }

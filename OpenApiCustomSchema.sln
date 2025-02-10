@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WebApplication1", "WebApplication1\WebApplication1.csproj", "{278C3B65-C0BB-412F-B2F0-8BB95C051E9F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenApiCustomSchema", "OpenApiCustomSchema\OpenApiCustomSchema.csproj", "{278C3B65-C0BB-412F-B2F0-8BB95C051E9F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 
-namespace WebApplication1;
+namespace OpenApiCustomSchema;
 
 internal static class ModuleC
 {

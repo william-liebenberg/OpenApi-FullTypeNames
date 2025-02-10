@@ -16,7 +16,10 @@ setup.CustomSchemaIds(x => x.FullName?.Replace("+", ".", StringComparison.Ordina
 
 In .NET 9, Swashbuckle has been removed as the default and replaced with a new .NET native implementation for [OpenAPI specification document generation](https://learn.microsoft.com/en-au/aspnet/core/fundamentals/openapi/overview?view=aspnetcore-9.0). However, now there is no convenient way to achieve the same outcome as we had using that Swashbuckle extension method.
 
-Before diving into the solution, there are some default behaviours to be aware of in the new .NET 9 OpenAPI generated document. First, I noticed that for any exactly similarly structured nested types the new schema only displays a single Model entry (as in there are no duplicates). Second, if you have nested types with the same name but different structures, then a numbered suffix is added to the typename in the schema.
+Before diving into the solution, there are some default behaviours to be aware of in the new .NET 9 OpenAPI generated document. 
+
+* First, I noticed that for any exactly similarly structured nested types the new schema only displays a single Model entry (as in there are no duplicates). 
+* Second, if you have nested types with the same name but different structures, then a numbered suffix is added to the typename in the schema.
 
 ![duplicate-models](./images/duplicate-models.png)
 *Figure: Scalar UI showing basic model names with numbered suffixes*
@@ -26,7 +29,7 @@ Before diving into the solution, there are some default behaviours to be aware o
 
 Neither of these behaviours is what I am looking for. Also, when expanding the endpoint to inspect the body or response schemas, there are no type names displayed either. Without the full type name, I cannot tell exactly which model the UI is referring to in my codebase. I NEED THE FULL TYPE NAME!!
 
-So, after a bit of experimentation I got my own version of the old `CustomSchemaIds` implementation working. I did have to take a bit of care to make it work for both [SwaggerUI](https://swagger.io/tools/swaggerhub/) and the newer [Scalar UI](https://github.com/scalar/scalar). Both libraries interpret the OpenAPI spec document slightly differently and use annotations vs titles in different parts of their UIs to display the type name, but I managed to achieve a consistent outcome for both.
+So, after a bit of experimentation I got my own version of the beloved `CustomSchemaIds` implementation working. The next section will cover all the details of the implementation.
 
 ![type-name-with-endpoint-response](./images/type-name-with-endpoint-response.png)
 *Figure: Expanding the response schema now shows the full type name*
@@ -49,12 +52,15 @@ using Microsoft.AspNetCore.OpenApi;
 
 public static class OpenApiExtensions
 {
-    public static OpenApiOptions CustomSchemaIds(this OpenApiOptions config, Func<Type, string?> typeSchemaTransformer)
+    public static OpenApiOptions CustomSchemaIds(this OpenApiOptions config, Func<Type, string?> typeSchemaTransformer, bool includeValueTypes = false)
     {
         return config.AddSchemaTransformer((schema, context, _) =>
         {
             // Skip value types and strings
-            if (context.JsonTypeInfo.Type.IsValueType || context.JsonTypeInfo.Type == typeof(String) || context.JsonTypeInfo.Type == typeof(string))
+            if (!includeValueTypes && 
+                (context.JsonTypeInfo.Type.IsValueType || 
+                 context.JsonTypeInfo.Type == typeof(String) || 
+                 context.JsonTypeInfo.Type == typeof(string)))
             {
                 return Task.CompletedTask;
             }
@@ -82,15 +88,31 @@ public static class OpenApiExtensions
 }
 ```
 
-The `CustomSchemaIds` method adds a schema transformer to the OpenAPI configuration by calling `AddSchemaTransformer`. This transformer is a function that takes three parameters: schema, context, and cancellationToken. The function first checks if the type information (`context.JsonTypeInfo.Type`) is a `value type` or a `string`. If it is, the function returns immediately using `Task.CompletedTask`, indicating that no transformation is needed for these types because I don't want them to be displayed any different than normal.
+* The `CustomSchemaIds` method adds a schema transformer to the OpenAPI configuration by calling `AddSchemaTransformer` and receives a delegate `typeSchemaTransformer` that callers can use for the custom transformation of types.
+* This transformer is a function that takes three parameters: `schema`, `context`, and `cancellationToken`. We are mainly interested in the `schema`, and the current `context` objects to perform our transformations.
+* The function first checks if the type information (`context.JsonTypeInfo.Type`) is a `value type` or a `string`.
+    * If it is, the function returns immediately using `Task.CompletedTask`, indicating that no transformation is needed for these types - I like to keep them as simple as possible.
 
-Next, the function checks if the `schema.Annotations` dictionary is null or does not contain the `x-schema-id` key. If either condition is true, the function again returns `Task.CompletedTask`, as there is no schema ID to modify.
+    > FYI - if we fully qualify `value types` then they appear as `System.Double`, `System.Guid`, `System.Int32`, `System.String` instead of `decimal`, `guid`, `int`, `string` :(
 
-If the schema ID is present, the function updates the `x-schema-id` annotation and the `schema.Title` property with the transformed type name. The transformed type name is obtained by executing the provided delegate and passing the `context.JsonTypeInfo.Type` value to be transformed. Nice and simple!
+* Next, the function checks if the `schema.Annotations` dictionary is null or does not contain the `x-schema-id` key.
+    * If either condition is true, the function again returns `Task.CompletedTask`, as there is no schema ID to modify.
+    * If the schema ID is present, the function updates the `x-schema-id` annotation and the `schema.Title` property with the transformed type name.
+* The transformed type name is obtained by executing the provided `typeSchemaTransformer` delegate and passing the `context.JsonTypeInfo.Type` value to be transformed.
+
+I did have to take a bit of care to make it work for both [SwaggerUI](https://swagger.io/tools/swaggerhub/) and the newer [Scalar UI](https://github.com/scalar/scalar). Both libraries interpret the OpenAPI spec document slightly differently. 
+
+* SwaggerUI uses the `title` field from the schema to represent the type name throughout the UI
+* Scalar uses the `title` field from the schema to represent the type in the **endpoints** section of the UI 
+* Scalar uses the `x-schema-id` annotation to represent the type in the **models** section of the UI 
+
+With this extension method, I managed to achieve a consistent outcome for both SwaggerUI and Scalar.
+
+Nice and simple!
 
 Now lets look at using this extension method in our own applications.
 
-## Transforming 
+## Custom Schema Transformations
 
 In your `Program.cs` file, use the extension method above as part of your OpenAPI application services configuration:
 

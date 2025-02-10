@@ -1,7 +1,7 @@
 using Scalar.AspNetCore;
 using SwaggerThemes;
 
-using WebApplication1;
+using OpenApiCustomSchema;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
