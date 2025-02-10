@@ -1,4 +1,4 @@
-# Enabling OpenAPI Spec to Use Full Type Names for Nested Types
+# Enabling .NET 9 OpenAPI Spec to use full type names for nested types
 
 In this post, we'll walk through the steps to enable the .NET 9 OpenAPI Spec to use full type names for nested types in your ASP.NET Core application.
 
