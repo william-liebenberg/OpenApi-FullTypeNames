@@ -4,7 +4,9 @@ namespace OpenApiCustomSchema;
 
 public static class OpenApiExtensions
 {
-    public static OpenApiOptions CustomSchemaIds(this OpenApiOptions config, Func<Type, string?> typeSchemaTransformer, bool includeValueTypes = false)
+    public static OpenApiOptions CustomSchemaIds(this OpenApiOptions config,
+        Func<Type, string?> typeSchemaTransformer,
+        bool includeValueTypes = false)
     {
         return config.AddSchemaTransformer((schema, context, _) =>
         {
